@@ -2,7 +2,10 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"log"
+	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
@@ -10,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/lhecker/tumblr-scraper/account"
+	"github.com/lhecker/tumblr-scraper/database"
 	"github.com/lhecker/tumblr-scraper/scraper"
 )
 
@@ -45,8 +49,13 @@ func batchRun(cmd *cobra.Command, args []string) {
 		<-ch
 	}()
 
+	u, _ := url.Parse("https://www.tumblr.com")
+	cookies := singletons.HTTPClient.Jar.Cookies(u)
+	data, err := json.Marshal(cookies)
+	_, _ = data, err
+
 	if len(singletons.Config.Username) != 0 {
-		account.Setup(singletons.HTTPClient, singletons.Config)
+		account.Setup(singletons.HTTPClient, singletons.Config, singletons.Database)
 	}
 
 	s := scraper.NewScraper(singletons.HTTPClient, singletons.Config, singletons.Database)
@@ -66,4 +75,13 @@ func batchRun(cmd *cobra.Command, args []string) {
 			return
 		}
 	}
+}
+
+func recoverCookies(httpClient *http.Client, db *database.Database) {
+	u, err := url.Parse("https://www.tumblr.com")
+	if err != nil {
+		panic(err)
+	}
+
+	httpClient.Jar.SetCookies(u, db.GetCookies(database.WwwTumblrComCookiesKey))
 }

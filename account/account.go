@@ -34,9 +34,9 @@ var (
 	loginLock  sync.Mutex
 )
 
-func Setup(client *http.Client, cfg *config.Config) {
+func Setup(client *http.Client, config *config.Config, database *database.Database) {
 	sharedClient = client
-	sharedConfig = cfg
+	sharedConfig = config
 }
 
 func LoginOnce() error {
